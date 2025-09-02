@@ -330,9 +330,9 @@ If you use this tool in your research, please cite:
 ```bibtex
 @software{medical_image_processing_tool,
   title={Medical Image Processing Tool for Disease Recognition},
-  author={AI Assistant},
+  author={itislynx},
   year={2025},
-  url={https://github.com/your-repo/image-processing}
+  url={https://github.com/itislynx/medical-image-processing}
 }
 ```
 

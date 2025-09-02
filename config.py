@@ -1,6 +1,6 @@
 """
 Configuration file for the Image Processing Tool
-Author: AI Assistant
+Author: itislynx
 Date: August 31, 2025
 """
 
