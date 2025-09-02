@@ -78,7 +78,7 @@ python main.py --dataset ./datasets/lung_xray --samples 3
 #### Advanced Usage
 ```bash
 # Process 5 random samples from a ZIP archive
-python main.py --dataset ./datasets/medical_images.zip --samples 5
+python main.py --dataset ./datasets/Chest_X-Ray_Image.zip --samples 5
 
 # Run without GPU acceleration
 python main.py --dataset ./datasets/ct_scans --samples 3 --no-gpu

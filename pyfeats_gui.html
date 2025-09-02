@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyFeats Image Filter Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            min-height: 70vh;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            padding: 30px;
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #007bff;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .upload-area:hover {
+            border-color: #0056b3;
+            background: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #007bff;
+        }
+
+        .upload-area p {
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .filter-section h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 8px;
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            z-index: 10;
+        }
+
+        .filter-grid {
+            display: grid;
+            gap: 8px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .filter-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .filter-grid::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .filter-grid::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .filter-grid::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .filter-button {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        .filter-button:hover {
+            border-color: #007bff;
+            background: #f8f9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .filter-button.active {
+            border-color: #007bff;
+            background: #007bff;
+            color: white;
+        }
+
+        .filter-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+        }
+
+        .filter-desc {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            line-height: 1.2;
+        }
+
+        .filter-button.active .filter-desc {
+            opacity: 0.9;
+        }
+
+        .visualization-area {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .image-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .image-counter {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .image-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            flex-grow: 1;
+        }
+
+        .image-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .image-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 600;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .image-content {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            min-height: 300px;
+        }
+
+        .image-content img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .placeholder {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .processing-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .features-info {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .feature-count {
+            background: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .image-display {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 PyFeats Image Filter Visualizer</h1>
+            <p>Real-time medical image analysis with advanced feature extraction</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="upload-section">
+                    <h3>📁 Upload Images</h3>
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📷</div>
+                        <p>Drag & drop images here<br>or click to select<br><small>(Multiple images supported)</small></p>
+                        <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="filter-section">
+                    <h3>🔧 PyFeats Filters</h3>
+                    <div class="filter-grid" id="filterGrid">
+                        <!-- Filters will be dynamically populated -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="visualization-area">
+                <div class="image-navigation" id="imageNavigation" style="display: none;">
+                    <div class="image-counter">
+                        Image <span id="currentImageIndex">1</span> of <span id="totalImages">1</span>
+                    </div>
+                    <div class="nav-buttons">
+                        <button class="nav-btn" id="prevBtn">← Previous</button>
+                        <button class="nav-btn" id="nextBtn">Next →</button>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" id="processBtn" disabled>
+                        🚀 Process Image
+                    </button>
+                    <button class="btn btn-secondary" id="downloadBtn" disabled>
+                        💾 Download Result
+                    </button>
+                    <button class="btn btn-secondary" id="processAllBtn" disabled>
+                        ⚡ Process All Images
+                    </button>
+                </div>
+                
+                <div id="processingInfo" class="processing-info" style="display: none;">
+                    <div class="loading"></div>
+                    <span>Processing image with <span id="currentFilter"></span>...</span>
+                </div>
+                
+                <div id="featuresInfo" class="features-info" style="display: none;">
+                    <strong>Features Extracted:</strong> 
+                    <span id="featureCount">0</span> features
+                    <span class="feature-count" id="featureCountBadge">0</span>
+                    <br><small>Processing time: <span id="processingTime">0</span>s</small>
+                </div>
+                
+                <div class="image-display">
+                    <div class="image-container">
+                        <div class="image-header">Original Image</div>
+                        <div class="image-content" id="originalImage">
+                            <div class="placeholder">Upload an image to get started</div>
+                        </div>
+                    </div>
+                    
+                    <div class="image-container">
+                        <div class="image-header">Processed Result</div>
+                        <div class="image-content" id="processedImage">
+                            <div class="placeholder">Select a filter and process the image</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // PyFeats filter configurations
+        const pyfeatsFilters = {
+            fos: {
+                name: 'First Order Statistics',
+                description: 'Statistical measures of pixel intensity',
+                endpoint: '/api/process/fos'
+            },
+            glcm: {
+                name: 'Gray Level Co-occurrence Matrix',
+                description: 'Texture analysis based on spatial relationships',
+                endpoint: '/api/process/glcm'
+            },
+            glrlm: {
+                name: 'Gray Level Run Length Matrix',
+                description: 'Features from gray level runs',
+                endpoint: '/api/process/glrlm'
+            },
+            glszm: {
+                name: 'Gray Level Size Zone Matrix',
+                description: 'Features from connected regions',
+                endpoint: '/api/process/glszm'
+            },
+            gldm: {
+                name: 'Gray Level Dependence Matrix',
+                description: 'Features based on gray level dependencies',
+                endpoint: '/api/process/gldm'
+            },
+            ngtdm: {
+                name: 'Neighborhood Gray Tone Difference Matrix',
+                description: 'Texture features from neighborhood differences',
+                endpoint: '/api/process/ngtdm'
+            },
+            lbp: {
+                name: 'Local Binary Pattern',
+                description: 'Local texture patterns',
+                endpoint: '/api/process/lbp'
+            },
+            mlbp: {
+                name: 'Multi-scale Local Binary Pattern',
+                description: 'LBP features at multiple scales',
+                endpoint: '/api/process/mlbp'
+            },
+            fractal: {
+                name: 'Fractal Dimension',
+                description: 'Fractal-based texture characterization',
+                endpoint: '/api/process/fractal'
+            },
+            hu_moments: {
+                name: 'Hu Moments',
+                description: 'Invariant moments for shape analysis',
+                endpoint: '/api/process/hu_moments'
+            },
+            zernike: {
+                name: 'Zernike Moments',
+                description: 'Orthogonal moments for shape description',
+                endpoint: '/api/process/zernike'
+            },
+            hog: {
+                name: 'Histogram of Oriented Gradients',
+                description: 'Gradient-based descriptors',
+                endpoint: '/api/process/hog'
+            }
+        };
+
+        // Global variables
+        let currentImages = []; // Array to store multiple images
+        let currentImageIndex = 0;
+        let selectedFilter = null;
+        let processedResults = []; // Array to store processed results for each image
+
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const filterGrid = document.getElementById('filterGrid');
+        const processBtn = document.getElementById('processBtn');
+        const processAllBtn = document.getElementById('processAllBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const originalImage = document.getElementById('originalImage');
+        const processedImage = document.getElementById('processedImage');
+        const processingInfo = document.getElementById('processingInfo');
+        const featuresInfo = document.getElementById('featuresInfo');
+        const currentFilter = document.getElementById('currentFilter');
+        const featureCount = document.getElementById('featureCount');
+        const featureCountBadge = document.getElementById('featureCountBadge');
+        const processingTime = document.getElementById('processingTime');
+        const imageNavigation = document.getElementById('imageNavigation');
+        const currentImageIndexEl = document.getElementById('currentImageIndex');
+        const totalImagesEl = document.getElementById('totalImages');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        // Initialize the application
+        function init() {
+            populateFilters();
+            setupEventListeners();
+        }
+
+        // Populate filter buttons
+        function populateFilters() {
+            Object.keys(pyfeatsFilters).forEach(filterId => {
+                const filter = pyfeatsFilters[filterId];
+                const button = document.createElement('div');
+                button.className = 'filter-button';
+                button.dataset.filter = filterId;
+                button.innerHTML = `
+                    <div class="filter-name">${filter.name}</div>
+                    <div class="filter-desc">${filter.description}</div>
+                `;
+                button.addEventListener('click', () => selectFilter(filterId));
+                filterGrid.appendChild(button);
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // File upload
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Process buttons
+            processBtn.addEventListener('click', processCurrentImage);
+            processAllBtn.addEventListener('click', processAllImages);
+
+            // Download button
+            downloadBtn.addEventListener('click', downloadResult);
+
+            // Navigation buttons
+            prevBtn.addEventListener('click', showPreviousImage);
+            nextBtn.addEventListener('click', showNextImage);
+        }
+
+        // Handle file drag and drop
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length > 0) {
+                loadImages(files);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                loadImages(files);
+            }
+        }
+
+        // Load and display multiple images
+        function loadImages(files) {
+            const validFiles = files.filter(file => file.type.startsWith('image/'));
+            
+            if (validFiles.length === 0) {
+                alert('Please select valid image files');
+                return;
+            }
+
+            currentImages = [];
+            processedResults = [];
+            currentImageIndex = 0;
+            
+            let loadedCount = 0;
+            
+            validFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImages[index] = {
+                        data: e.target.result,
+                        name: file.name,
+                        size: file.size
+                    };
+                    
+                    loadedCount++;
+                    
+                    // When all images are loaded
+                    if (loadedCount === validFiles.length) {
+                        // Remove any undefined entries and sort by index
+                        currentImages = currentImages.filter(img => img !== undefined);
+                        
+                        // Show first image
+                        showCurrentImage();
+                        updateNavigationVisibility();
+                        updateButtons();
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Show current image
+        function showCurrentImage() {
+            if (currentImages.length === 0) return;
+            
+            const currentImg = currentImages[currentImageIndex];
+            const img = document.createElement('img');
+            img.src = currentImg.data;
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '100%';
+            
+            originalImage.innerHTML = '';
+            originalImage.appendChild(img);
+            
+            // Update navigation info
+            currentImageIndexEl.textContent = currentImageIndex + 1;
+            totalImagesEl.textContent = currentImages.length;
+            
+            // Show processed result if available
+            const processedResult = processedResults[currentImageIndex];
+            if (processedResult) {
+                displayProcessedResult(processedResult);
+            } else {
+                processedImage.innerHTML = '<div class="placeholder">Select a filter and process the image</div>';
+                featuresInfo.style.display = 'none';
+                downloadBtn.disabled = true;
+            }
+            
+            updateNavigationButtons();
+        }
+
+        // Navigation functions
+        function showPreviousImage() {
+            if (currentImageIndex > 0) {
+                currentImageIndex--;
+                showCurrentImage();
+            }
+        }
+
+        function showNextImage() {
+            if (currentImageIndex < currentImages.length - 1) {
+                currentImageIndex++;
+                showCurrentImage();
+            }
+        }
+
+        function updateNavigationButtons() {
+            prevBtn.disabled = currentImageIndex === 0;
+            nextBtn.disabled = currentImageIndex === currentImages.length - 1;
+        }
+
+        function updateNavigationVisibility() {
+            if (currentImages.length > 1) {
+                imageNavigation.style.display = 'flex';
+            } else {
+                imageNavigation.style.display = 'none';
+            }
+        }
+
+        // Select filter
+        function selectFilter(filterId) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.filter-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to selected button
+            document.querySelector(`[data-filter="${filterId}"]`).classList.add('active');
+            
+            selectedFilter = filterId;
+            updateButtons();
+        }
+
+        // Update button states
+        function updateButtons() {
+            const hasImages = currentImages.length > 0;
+            const hasFilter = selectedFilter !== null;
+            
+            processBtn.disabled = !(hasImages && hasFilter);
+            processAllBtn.disabled = !(hasImages && hasFilter);
+            
+            // Download button is enabled per image based on processed results
+            const currentResult = processedResults[currentImageIndex];
+            downloadBtn.disabled = !currentResult;
+        }
+
+        // Process current image with selected filter
+        async function processCurrentImage() {
+            if (currentImages.length === 0 || !selectedFilter) return;
+
+            const filter = pyfeatsFilters[selectedFilter];
+            const currentImg = currentImages[currentImageIndex];
+            
+            // Show processing info
+            currentFilter.textContent = filter.name;
+            processingInfo.style.display = 'block';
+            featuresInfo.style.display = 'none';
+            processBtn.disabled = true;
+
+            try {
+                // Send request to Flask backend
+                const response = await fetch(`/api/process/${selectedFilter}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: currentImg.data,
+                        parameters: {}
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Store the result
+                    processedResults[currentImageIndex] = result;
+                    
+                    // Display the result
+                    displayProcessedResult(result);
+                    
+                } else {
+                    throw new Error(result.error || 'Processing failed');
+                }
+                
+            } catch (error) {
+                console.error('Processing error:', error);
+                alert(`Error processing image: ${error.message}`);
+            } finally {
+                processingInfo.style.display = 'none';
+                updateButtons();
+            }
+        }
+
+        // Process all images with selected filter
+        async function processAllImages() {
+            if (currentImages.length === 0 || !selectedFilter) return;
+
+            const filter = pyfeatsFilters[selectedFilter];
+            
+            // Show processing info
+            currentFilter.textContent = `${filter.name} (Processing all images...)`;
+            processingInfo.style.display = 'block';
+            featuresInfo.style.display = 'none';
+            processBtn.disabled = true;
+            processAllBtn.disabled = true;
+
+            try {
+                for (let i = 0; i < currentImages.length; i++) {
+                    currentFilter.textContent = `${filter.name} (Image ${i + 1}/${currentImages.length})`;
+                    
+                    const response = await fetch(`/api/process/${selectedFilter}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            image: currentImages[i].data,
+                            parameters: {}
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        processedResults[i] = result;
+                    } else {
+                        console.error(`Error processing image ${i + 1}:`, result.error);
+                    }
+                }
+                
+                // Show current image result
+                showCurrentImage();
+                alert(`Processed ${currentImages.length} images successfully!`);
+                
+            } catch (error) {
+                console.error('Batch processing error:', error);
+                alert(`Error during batch processing: ${error.message}`);
+            } finally {
+                processingInfo.style.display = 'none';
+                updateButtons();
+            }
+        }
+
+        // Display processed result
+        function displayProcessedResult(result) {
+            // Display processed image
+            const processedImg = document.createElement('img');
+            processedImg.src = result.processed_image;
+            processedImg.style.maxWidth = '100%';
+            processedImg.style.maxHeight = '100%';
+            
+            processedImage.innerHTML = '';
+            processedImage.appendChild(processedImg);
+            
+            // Update feature information
+            featureCount.textContent = result.feature_count;
+            featureCountBadge.textContent = result.feature_count;
+            
+            // Update processing time if available
+            if (result.processing_time) {
+                processingTime.textContent = result.processing_time;
+            }
+            
+            featuresInfo.style.display = 'block';
+            
+            // Store processed image for download
+            processedImage.dataset.processedSrc = result.processed_image;
+            
+            updateButtons();
+        }
+
+        // Download processed result
+        function downloadResult() {
+            const currentResult = processedResults[currentImageIndex];
+            if (currentResult) {
+                const currentImg = currentImages[currentImageIndex];
+                const link = document.createElement('a');
+                link.download = `processed_${selectedFilter}_${currentImg.name.split('.')[0]}_${Date.now()}.png`;
+                link.href = currentResult.processed_image;
+                link.click();
+            }
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

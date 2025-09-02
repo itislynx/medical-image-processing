@@ -16,6 +16,7 @@ sys.path.append(str(Path(__file__).parent / "src"))
 from config import Config
 from src.utils.dataset_loader import DatasetLoader
 from src.processors.image_processor import ImageProcessor
+from src.processors.pyfeats_processor import PyFeatsProcessor, PYFEATS_AVAILABLE
 from src.utils.visualization import Visualizer
 
 
@@ -25,20 +26,35 @@ class MedicalImageProcessor:
     Integrates dataset loading, processing, and visualization.
     """
     
-    def __init__(self, use_gpu: bool = True):
+    def __init__(self, use_gpu: bool = True, use_pyfeats: bool = False):
         """
         Initialize the medical image processor.
         
         Args:
             use_gpu: Whether to use GPU acceleration
+            use_pyfeats: Whether to use PyFeats library instead of custom algorithms
         """
         self.use_gpu = use_gpu
+        self.use_pyfeats = use_pyfeats
         self.dataset_loader = None
-        self.image_processor = ImageProcessor(use_gpu=use_gpu)
+        
+        # Initialize appropriate processor
+        if use_pyfeats and PYFEATS_AVAILABLE:
+            self.image_processor = PyFeatsProcessor(use_gpu=use_gpu)
+            self.processor_type = "PyFeats"
+        elif use_pyfeats and not PYFEATS_AVAILABLE:
+            print("Warning: PyFeats not available. Falling back to custom algorithms.")
+            self.image_processor = ImageProcessor(use_gpu=use_gpu)
+            self.processor_type = "Custom"
+        else:
+            self.image_processor = ImageProcessor(use_gpu=use_gpu)
+            self.processor_type = "Custom"
+        
         self.visualizer = Visualizer()
         self.timing_data = {}
         
         if Config.DEBUG:
+            print(f"[DEBUG] Using {self.processor_type} processor")
             Config.print_config()
     
     def load_dataset(self, dataset_path: str) -> DatasetLoader:
@@ -109,9 +125,12 @@ class MedicalImageProcessor:
                 
                 sample_name = sample_path.stem
                 
-                # Process with all algorithms
+                # Process with appropriate algorithms
                 start_time = time.time()
-                sample_results = self.image_processor.process_all_algorithms(image)
+                if self.use_pyfeats and hasattr(self.image_processor, 'process_all_methods'):
+                    sample_results = self.image_processor.process_all_methods(image)
+                else:
+                    sample_results = self.image_processor.process_all_algorithms(image)
                 processing_time = time.time() - start_time
                 
                 # Store timing information
@@ -257,6 +276,10 @@ class MedicalImageProcessor:
         Returns:
             Dictionary with algorithm names and descriptions
         """
+        if self.use_pyfeats and hasattr(self.image_processor, 'get_method_info'):
+            return self.image_processor.get_method_info()
+        
+        # Default custom algorithms info
         algorithms_info = {
             'gabor_filter': 'Multi-orientation Gabor filters for texture analysis in medical images',
             'local_directional_pattern': 'LDP captures directional texture information for disease pattern recognition',
@@ -283,7 +306,8 @@ def main():
 Examples:
   python main.py --dataset ./datasets/lung_xray --samples 5
   python main.py --dataset ./datasets/ct_scans.zip --samples 3 --no-gpu
-  python main.py --dataset ./datasets/ --samples 10
+  python main.py --dataset ./datasets/ --samples 10 --pyfeats
+  python main.py --algorithms --pyfeats
         '''
     )
     
@@ -308,6 +332,12 @@ Examples:
     )
     
     parser.add_argument(
+        '--pyfeats', 
+        action='store_true',
+        help='Use PyFeats library for feature extraction instead of custom algorithms'
+    )
+    
+    parser.add_argument(
         '--algorithms', 
         action='store_true',
         help='List available processing algorithms'
@@ -316,7 +346,7 @@ Examples:
     args = parser.parse_args()
     
     # Create processor
-    processor = MedicalImageProcessor(use_gpu=not args.no_gpu)
+    processor = MedicalImageProcessor(use_gpu=not args.no_gpu, use_pyfeats=args.pyfeats)
     
     if args.algorithms:
         # Show algorithm information

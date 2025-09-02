@@ -36,5 +36,12 @@ pyradiomics>=3.0.0
 # Wavelets
 PyWavelets>=1.1.0
 
+# PyFeats for advanced feature extraction
+pyfeats>=1.0.0
+
+# Web server for GUI
+Flask>=2.0.0
+Flask-CORS>=3.0.0
+
 # Additional utilities
 psutil>=5.8.0
